@@ -1,0 +1,40 @@
+CREATE TABLE `userSettings` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`hfToken` text,
+	`tiktokClientId` text,
+	`tiktokClientSecret` text,
+	`tiktokAccessToken` text,
+	`tiktokRefreshToken` text,
+	`tiktokTokenExpiry` timestamp,
+	`videoLength` int DEFAULT 8,
+	`videoQuality` enum('fast','balanced','high') DEFAULT 'balanced',
+	`defaultPrivacy` enum('PUBLIC_TO_EVERYONE','MUTUAL_FOLLOW_FRIENDS','SELF_ONLY') DEFAULT 'PUBLIC_TO_EVERYONE',
+	`enableComments` boolean DEFAULT true,
+	`enableDuets` boolean DEFAULT true,
+	`enableStitch` boolean DEFAULT true,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `userSettings_id` PRIMARY KEY(`id`),
+	CONSTRAINT `userSettings_userId_unique` UNIQUE(`userId`)
+);
+--> statement-breakpoint
+CREATE TABLE `videos` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`userId` int NOT NULL,
+	`productUrl` text NOT NULL,
+	`productName` varchar(500),
+	`productImage` text,
+	`productPrice` varchar(100),
+	`productDescription` text,
+	`videoUrl` text,
+	`thumbnailUrl` text,
+	`caption` text,
+	`hashtags` text,
+	`status` enum('pending','processing','completed','failed','posted') NOT NULL DEFAULT 'pending',
+	`tiktokPostId` varchar(255),
+	`errorMessage` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `videos_id` PRIMARY KEY(`id`)
+);

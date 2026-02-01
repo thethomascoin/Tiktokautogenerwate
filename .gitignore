@@ -1,0 +1,5 @@
+/[Aa]ndroid/app/build/
+/[Aa]ndroid/.gradle/
+/node_modules/
+*.iml
+.DS_Store
