@@ -5,25 +5,32 @@ try {
     console.log('🚀 Starting build process...');
 
     // 1. Database Schema Generation
-    // Ensure drizzle kit generates the necessary artifacts
+    // Hack: drizzle.config.ts requires DATABASE_URL even for generation.
+    // We provide a dummy one if missing during build to allow `drizzle-kit generate` to work
+    // (it only compares schema files, doesn't need real DB connection for 'generate').
+    if (!process.env.DATABASE_URL) {
+        console.warn('⚠️ DATABASE_URL not found. Using placeholder for build generation.');
+        process.env.DATABASE_URL = 'mysql://placeholder:placeholder@localhost:3306/placeholder';
+    }
+
     console.log('📦 Generating database migrations...');
-    // We use db:push to ensure schema is logically valid, though typically migration is separate.
-    // Using generate is effortless.
     try {
-        execSync('npx drizzle-kit generate', { stdio: 'inherit' });
+        execSync('npx drizzle-kit generate', { stdio: 'inherit', env: process.env });
     } catch (e) {
         console.warn('⚠️ Drizzle generation warning (non-fatal):', e.message);
     }
 
     // 2. Build Server
-    // We compile the server to a distinct directory to avoid conflicts
     console.log('🛠️  Building server...');
     execSync('npx esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', { stdio: 'inherit' });
 
-    // 3. (Optional) Expo Web Build
-    // If you want to deploy the frontend, uncomment the line below and ensure your Vercel Output Directory is set to "dist/web"
-    // console.log('🌐 Building Expo web client...');
-    // execSync('npx expo export -p web --output-dir dist/web', { stdio: 'inherit' });
+    // 3. Create 'public' directory to satisfy Vercel
+    // Vercel's default output directory logic often looks for 'public' if no other Output Directory is configured.
+    if (!fs.existsSync('public')) {
+        console.log('📂 Creating public directory...');
+        fs.mkdirSync('public');
+        fs.writeFileSync('public/index.html', '<html><body><h1>API Server Running</h1><p>The backend is active.</p></body></html>');
+    }
 
     console.log('✅ Build completed successfully.');
 } catch (error) {

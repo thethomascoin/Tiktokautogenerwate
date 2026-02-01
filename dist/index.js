@@ -34,7 +34,7 @@ var users = mysqlTable("users", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
 });
-var videos2 = mysqlTable("videos", {
+var videos = mysqlTable("videos", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
   productUrl: text("productUrl").notNull(),
@@ -167,23 +167,23 @@ async function getUserByOpenId(openId) {
 async function getVideoById(id) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(videos2).where(eq(videos2.id, id)).limit(1);
+  const result = await db.select().from(videos).where(eq(videos.id, id)).limit(1);
   return result[0] || null;
 }
 async function getUserVideos(userId) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(videos2).where(eq(videos2.userId, userId)).orderBy(videos2.createdAt);
+  return db.select().from(videos).where(eq(videos.userId, userId)).orderBy(videos.createdAt);
 }
 async function updateVideo(id, data) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.update(videos2).set(data).where(eq(videos2.id, id));
+  await db.update(videos).set(data).where(eq(videos.id, id));
 }
 async function deleteVideo(id) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.delete(videos2).where(eq(videos2.id, id));
+  await db.delete(videos).where(eq(videos.id, id));
 }
 async function getUserSettings(userId) {
   const db = await getDb();
@@ -529,8 +529,8 @@ function buildUserResponse(user) {
     lastSignedIn: (user?.lastSignedIn ?? /* @__PURE__ */ new Date()).toISOString()
   };
 }
-function registerOAuthRoutes(app) {
-  app.get("/api/oauth/callback", async (req, res) => {
+function registerOAuthRoutes(app2) {
+  app2.get("/api/oauth/callback", async (req, res) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
     if (!code || !state) {
@@ -554,7 +554,7 @@ function registerOAuthRoutes(app) {
       res.status(500).json({ error: "OAuth callback failed" });
     }
   });
-  app.get("/api/oauth/mobile", async (req, res) => {
+  app2.get("/api/oauth/mobile", async (req, res) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
     if (!code || !state) {
@@ -580,12 +580,12 @@ function registerOAuthRoutes(app) {
       res.status(500).json({ error: "OAuth mobile exchange failed" });
     }
   });
-  app.post("/api/auth/logout", (req, res) => {
+  app2.post("/api/auth/logout", (req, res) => {
     const cookieOptions = getSessionCookieOptions(req);
     res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     res.json({ success: true });
   });
-  app.get("/api/auth/me", async (req, res) => {
+  app2.get("/api/auth/me", async (req, res) => {
     try {
       const user = await sdk.authenticateRequest(req);
       res.json({ user: buildUserResponse(user) });
@@ -594,7 +594,7 @@ function registerOAuthRoutes(app) {
       res.status(401).json({ error: "Not authenticated", user: null });
     }
   });
-  app.post("/api/auth/session", async (req, res) => {
+  app2.post("/api/auth/session", async (req, res) => {
     try {
       const user = await sdk.authenticateRequest(req);
       const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -1015,11 +1015,11 @@ async function generateUGCVideoFromUrl(url, customScript) {
 }
 
 // server/_core/analytics.ts
-function getTrendingMetrics(videos3) {
-  const topPerformers = videos3.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-  const totalViews = videos3.reduce((sum, v) => sum + (v.views || 0), 0);
-  const totalLikes = videos3.reduce((sum, v) => sum + (v.likes || 0), 0);
-  const averageEngagement = videos3.length > 0 ? videos3.reduce((sum, v) => sum + (v.engagement || 0), 0) / videos3.length : 0;
+function getTrendingMetrics(videos2) {
+  const topPerformers = videos2.sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+  const totalViews = videos2.reduce((sum, v) => sum + (v.views || 0), 0);
+  const totalLikes = videos2.reduce((sum, v) => sum + (v.likes || 0), 0);
+  const averageEngagement = videos2.length > 0 ? videos2.reduce((sum, v) => sum + (v.engagement || 0), 0) / videos2.length : 0;
   return {
     topPerformers,
     averageEngagement,
@@ -1285,8 +1285,8 @@ Description: ${video.productDescription}`
   }),
   analytics: router({
     metrics: publicProcedure.query(async ({ ctx }) => {
-      const videos3 = await getUserVideos(ctx.user?.id || 0);
-      return getTrendingMetrics(videos3);
+      const videos2 = await getUserVideos(ctx.user?.id || 0);
+      return getTrendingMetrics(videos2);
     })
   })
 });
@@ -1309,11 +1309,11 @@ async function createContext(opts) {
 // server/_core/index.ts
 function isPortAvailable(port) {
   return new Promise((resolve) => {
-    const server = net.createServer();
-    server.listen(port, () => {
-      server.close(() => resolve(true));
+    const server2 = net.createServer();
+    server2.listen(port, () => {
+      server2.close(() => resolve(true));
     });
-    server.on("error", () => resolve(false));
+    server2.on("error", () => resolve(false));
   });
 }
 async function findAvailablePort(startPort = 3e3) {
@@ -1324,39 +1324,42 @@ async function findAvailablePort(startPort = 3e3) {
   }
   throw new Error(`No available port found starting from ${startPort}`);
 }
-async function startServer() {
-  const app = express();
-  const server = createServer(app);
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-    res.header("Access-Control-Allow-Credentials", "true");
-    if (req.method === "OPTIONS") {
-      res.sendStatus(200);
-      return;
-    }
-    next();
-  });
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  registerOAuthRoutes(app);
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now() });
-  });
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext
-    })
+var app = express();
+var server = createServer(app);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
+  res.header("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+registerOAuthRoutes(app);
+app.get("/api/health", (_req, res) => {
+  res.json({ ok: true, timestamp: Date.now() });
+});
+app.use(
+  "/api/trpc",
+  createExpressMiddleware({
+    router: appRouter,
+    createContext
+  })
+);
+if (process.env.VERCEL !== "1") {
+  startStandaloneServer();
+}
+async function startStandaloneServer() {
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
   if (port !== preferredPort) {
@@ -1366,4 +1369,7 @@ async function startServer() {
     console.log(`[api] server listening on port ${port}`);
   });
 }
-startServer().catch(console.error);
+var index_default = app;
+export {
+  index_default as default
+};
