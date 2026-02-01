@@ -24,12 +24,14 @@ try {
     console.log('🛠️  Building server...');
     execSync('npx esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist', { stdio: 'inherit' });
 
-    // 3. Create 'public' directory to satisfy Vercel
-    // Vercel's default output directory logic often looks for 'public' if no other Output Directory is configured.
-    if (!fs.existsSync('public')) {
-        console.log('📂 Creating public directory...');
-        fs.mkdirSync('public');
-        fs.writeFileSync('public/index.html', '<html><body><h1>API Server Running</h1><p>The backend is active.</p></body></html>');
+    // 3. Expo Web Build (Frontend)
+    // Export web assets to 'public' directory which Vercel serves automatically
+    console.log('🌐 Building Expo web client...');
+    try {
+        execSync('npx expo export -p web --output-dir public', { stdio: 'inherit', env: process.env });
+    } catch (e) {
+        console.error('❌ Expo export failed:', e.message);
+        throw e;
     }
 
     console.log('✅ Build completed successfully.');
