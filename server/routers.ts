@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb, getVideoById, updateVideo, getUserVideos, deleteVideo, getUserSettings, upsertUserSettings, getQueueItems, createQueueItem, deleteQueueItem, getQueueStats } from "./db";
+import { videos } from "../drizzle/schema";
 import { invokeLLM } from "./_core/llm";
 import { fetchTikTokProductData } from "./_core/tiktokAPI";
 import { generateUGCVideoFromUrl } from "./_core/videoGeneration";
