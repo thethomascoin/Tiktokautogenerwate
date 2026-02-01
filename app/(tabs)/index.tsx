@@ -142,24 +142,26 @@ export default function HomeScreen() {
           </View>
           {/* Chat Widget */}
           <View className="mt-8 bg-surface rounded-xl overflow-hidden border border-border" style={{ height: 600 }}>
-            <WebView
-              originWhitelist={['*']}
-              source={{
-                html: `
-                   <!DOCTYPE html>
-                   <html>
-                   <head>
-                       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                       <style>body { margin: 0; background-color: #0d0d0d; }</style>
-                   </head>
-                   <body>
-                       <script src="https://ionos.ai-voice-receptionist.com/chat-scripts-MqGN74WP/web-chat.js" name="web-chat" data-client-secret="e5be958f-206c-4776-82e3-368876d65d63"></script>
-                   </body>
-                   </html>
-                 `
-              }}
-              style={{ flex: 1, backgroundColor: 'transparent' }}
-            />
+            {typeof window !== "undefined" ? (
+              <WebView
+                originWhitelist={['*']}
+                source={{
+                  html: `
+                     <!DOCTYPE html>
+                     <html>
+                     <head>
+                         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                         <style>body { margin: 0; background-color: #0d0d0d; }</style>
+                     </head>
+                     <body>
+                         <script src="https://ionos.ai-voice-receptionist.com/chat-scripts-MqGN74WP/web-chat.js" name="web-chat" data-client-secret="e5be958f-206c-4776-82e3-368876d65d63"></script>
+                     </body>
+                     </html>
+                   `
+                }}
+                style={{ flex: 1, backgroundColor: 'transparent' }}
+              />
+            ) : null}
           </View>
         </View>
       </ScrollView>
