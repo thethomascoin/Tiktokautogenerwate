@@ -26,9 +26,25 @@ try {
 
     // 3. Expo Web Build (Frontend)
     // Export web assets to 'public' directory which Vercel serves automatically
+    // We export to a temporary directory 'dist-web' first to avoid "cp: src and dest cannot be the same" error
+    // because Expo tries to copy 'public/' (source) to 'public/' (output) which fails.
     console.log('🌐 Building Expo web client...');
     try {
-        execSync('npx expo export -p web --output-dir public', { stdio: 'inherit', env: process.env });
+        // Clear previous leftovers
+        if (fs.existsSync('dist-web')) {
+            fs.rmSync('dist-web', { recursive: true, force: true });
+        }
+
+        // Export to temporary directory
+        execSync('npx expo export -p web --output-dir dist-web', { stdio: 'inherit', env: process.env });
+
+        // Replace 'public' directory with the built version
+        console.log('📂 Preparing final public directory...');
+        if (fs.existsSync('public')) {
+            fs.rmSync('public', { recursive: true, force: true });
+        }
+        fs.renameSync('dist-web', 'public');
+
     } catch (e) {
         console.error('❌ Expo export failed:', e.message);
         throw e;
